@@ -1,41 +1,38 @@
 const dotenv = require("dotenv");
 dotenv.config();
 const express = require("express");
-const connectDB = require("./config/db");
+const mongoose = require('mongoose');
+const cors = require("cors");
+const Todo = require("./model/todo");
 const app = express();
 const PORT = 5000;
-var cors = require("cors");
-// const todo = require("./routes/todo"); 
-const Todo = require("./model/todo");
-connectDB();
+const db = process.env.MONGO_URL;
 
-app.use(express.json({ extended: false }));
+app.use(express.json());
 app.use(cors());
 
-let todos = [
-    {
-        id: Math.floor(Math.random() * 100),
-        value: "Hello",
-    },
-    {
-        id: Math.floor(Math.random() * 100),
-        value: "World",
-    },
-    {
-        id: Math.floor(Math.random() * 100),
-        value: "Playing",
-    },
-];
+// let todos = [
+//     {
+//         id: Math.floor(Math.random() * 100),
+//         value: "Hello",
+//     },
+//     {
+//         id: Math.floor(Math.random() * 100),
+//         value: "World",
+//     },
+//     {
+//         id: Math.floor(Math.random() * 100),
+//         value: "Playing",
+//     },
+// ];
 
-app.get("/", function(req,res){
-    res.send(todos);
+app.get("/", async function(req,res){
+    const todos = await Todo.find();
+    res.json(todos);
 });
 
+
 app.post("/addTodo", async function(req,res){
-    // console.log(req.body);
-    // todos.push(req.body);
-    // console.log(todos);
-    
     const newTodo = new Todo({
         value: req.body.value,
     });
@@ -44,20 +41,24 @@ app.post("/addTodo", async function(req,res){
     res.json(createTodo);
 });
 
-app.delete("/delete/:id", function(req,res){
+app.delete("/delete/:id", async function(req,res){
     let {id} = req.params;
-    // console.log(id);
-    todos = todos.filter(todo => String(todo.id) !== id);
-    // console.log("DELETE: ", deletedTodo);
-    // console.log(todos);
-    res.send(todos);
+    const deleteTodo = await Todo.findByIdAndDelete(id)
+    res.json(deleteTodo);
 });
 
+app.put("/update/:id", async function(req,res){
+    let {id} = req.params;
+    let body = req.body.value;
+    const updateTodo = await Todo.findByIdAndUpdate(id, { value: body}, { returnDocument: 'after' });
+    res.json(updateTodo);
+});
 
-
-
-app.listen(PORT, () => {
-    console.log(`App listening on port ${PORT}`)
+mongoose.connect(db)
+.then(() => {
+    console.log("MongoDB Connected");
+    app.listen(PORT);
+    console.log(`Running aap on ${PORT}`);
 });
 
 module.exports = app;
